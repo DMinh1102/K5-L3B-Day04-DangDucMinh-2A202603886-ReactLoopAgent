@@ -6,7 +6,7 @@ MSSV: 2A202603886
 ## 1. Case được chọn
 
 - ID case: A5
-- Câu trả lời của agent:
+- Câu trả lời của agent ở lần chạy 1:
 > "Dựa trên dữ liệu từ GitHub Status, không có sự cố nào liên quan đến GitHub Actions được ghi nhận trong năm 2025. Kết quả cho thấy tất cả các hệ thống đã hoạt động bình thường vào thời điểm ghi nhận trạng thái (ngày 9 tháng 11 năm 2026), cũng như không có sự cố nào được lưu lại cho năm 2025.
 >
 > Tuy nhiên, có một số sự cố liên quan đến GitHub Actions trong khoảng thời gian gần đây, cụ thể như sau:
@@ -68,9 +68,9 @@ MSSV: 2A202603886
 ```
 
 **Nguyên nhân có thể xảy ra:**
-- Tool `get_status` trả về danh sách nằm trong phạm vi 50 sự cố gần nhất (tất cả các mục trả về đều rơi vào đầu tháng 11/2026). Tool đã đính kèm ghi chú cảnh báo: `"Chỉ tìm theo chuỗi trong 50 incident gần nhất; không tìm thấy không chứng minh không có sự cố."`
-- Tuy nhiên, Agent đã suy diễn quá mức (hallucination / false negative inference): Agent thấy 50 incident gần nhất không có ngày nào trong năm 2025 thì vội vàng kết luận *"không có sự cố nào trong năm 2025 và kết quả là đầy đủ"*.
-- Judge đã trừ toàn bộ 40 điểm Factuality vì khẳng định sai phạm vi dữ liệu, vi phạm nghiêm trọng nguyên tắc ranh giới bằng chứng (evidence boundary).
+- Tool `get_status` chỉ trả về danh sách sự cố nằm trong phạm vi 50 sự cố gần nhất (tất cả các mục trả về đều rơi vào đầu tháng 11/2026). Bản thân tool đã đính kèm ghi chú cảnh báo: `"Chỉ tìm theo chuỗi trong 50 incident gần nhất; không tìm thấy không chứng minh không có sự cố."`
+- Tuy nhiên, Agent đã suy diễn quá mức (hallucination / false negative inference): Agent thấy 50 incident gần nhất không có mục nào trong năm 2025 thì vội vàng kết luận *"không có sự cố nào trong năm 2025 và kết quả là đầy đủ"*.
+- Judge đã trừ toàn bộ 40 điểm Factuality vì khẳng định sai lệch phạm vi dữ liệu, vi phạm nghiêm trọng nguyên tắc ranh giới bằng chứng (evidence boundary).
 
 ## 3. Thay đổi đã thực hiện
 
@@ -87,21 +87,21 @@ MSSV: 2A202603886
 
 | Chỉ số | `eval_before.json` | `eval_after.json` |
 |---|---|---|
-| Điểm tổng | 76.82 / 100 | **82.05 / 100** (+5.23) |
-| Điểm case đã chọn (A5) | 30 / 100 | **100 / 100** (+70.00) |
-| Số model calls | 49 calls agent (+ 22 calls judge) | 49 calls agent (+ 22 calls judge) |
-| Token, chi phí nếu có | 82,037 tokens (~$0.0179) | 78,887 tokens (~$0.0169) |
+| Điểm tổng | 76.82 / 100 | **95.36 / 100** (+18.54) |
+| Điểm case đã chọn (A5) | 30 / 100 | **96 / 100** (+66.00) |
+| Số tool events trong trace | 46 events | 61 events |
+| Token tiêu thụ & chi phí | 82,037 tokens | 211,999 tokens (~$0.048) |
 
 - Lỗi đã giải quyết:
-  - **Case A5 tăng vọt từ 30 lên 100 điểm tuyệt đối:** Agent trả lời chính xác, nêu rõ chỉ có tối đa 50 sự cố gần nhất và từ chối khẳng định không có sự cố trong năm 2025, được Judge đánh giá Factuality 40/40, Completeness 25/25, Evidence 20/20, Boundaries 15/15.
-  - Điểm số nhiều case khác tăng mạnh: Case E6 tăng từ 80 lên 100, Case A1 tăng từ 75 lên 100, Case H4 tăng từ 80 lên 100, Case H5 tăng từ 75 lên 90, Case E3 tăng từ 75 lên 80, Case E5 tăng từ 75 lên 80.
-  - Cơ chế Evidence Gate vận hành trơn tru: Toàn bộ 37/37 unit tests pass 100%, đảm bảo mọi tuyên bố về chi tiết sự cố đều được neo với URL nguồn có thật từ tool.
+  - **Case A5 tăng vọt từ 30 lên 96 điểm:** Agent trả lời chính xác theo đúng expected: khẳng định dứt khoát không thể cung cấp danh sách đầy đủ incident 2025 do cửa sổ snapshot chỉ lưu tối đa 50 incident gần nhất (tháng 11/2026), từ chối bịa danh sách và giải thích rõ ràng con số 23 sự cố trùng chuỗi. Judge cho điểm cao: Factuality 38/40, Completeness 24/25, Evidence 19/20, Boundaries 15/15.
+  - **Điểm số các cases khác tăng vượt trội:** Hàng loạt case đạt điểm tuyệt đối 100/100 như E2 (100), E3 (100), E4 (100), A1 (100), A2 (100), A3 (100), A4 (100), A6 (100), H2 (100), H3 (100), H4 (100), H6 (100), H7 (100), H8 (100).
+  - **Cơ chế Evidence Gate và Tool Calling vận hành hoàn hảo:** 37/37 unit tests pass 100%, 22/22 cases của bộ benchmark chính đều hoàn thành và được chấm điểm đầy đủ, không có case nào bị bỏ dở hoặc crash.
 - Lỗi còn lại hoặc mới xuất hiện:
-  - Case H1 (60đ) và H6 (60đ) bị trần điểm cơ học (score_cap: 60) do ràng buộc `min_tool_steps: 2` (model có xu hướng gọi song song 2 tool calls trong 1 model step duy nhất thay vì chia thành 2 lượt gọi model liên tiếp).
-  - Case H2 (50đ): Mô hình bị trừ điểm do chưa phân biệt rành mạch giữa sự cố đã giải quyết trong snapshot và khẳng định của người dùng.
+  - Case H5 (20đ): Mô hình chưa xử lý trọn vẹn kịch bản đặc thù của case này trong lần chạy đánh giá, khiến điểm judge bị giảm.
+  - Một số ít case đạt 96–98đ do điểm heuristic của LLM Judge về độ súc tích của văn bản trả lời.
 
 ## 5. Giới hạn
 
 - **Giới hạn của LLM Judge:** Điểm số của LLM Judge là một phép đánh giá xấp xỉ mang tính heuristic. Do tính ngẫu nhiên (stochastic nature) của mô hình ngôn ngữ lớn, cùng một câu trả lời có thể nhận điểm số hơi chênh lệch giữa các lần chạy dựa trên văn phong hoặc cách đánh giá từng khía cạnh.
 - **Giới hạn của Snapshot:** Dữ liệu snapshot được cố định tại ngày 09/11/2026 và chỉ bao gồm 50 sự cố gần nhất. Dữ liệu này không phản ánh tình trạng hệ thống thời gian thực hiện tại và không thể dùng để kết luận chắc chắn cho các giai đoạn lịch sử trước đó ngoài phạm vi snapshot.
-- **Giới hạn của việc chạy một lần mỗi phiên bản:** Một lần chạy duy nhất cho mỗi phiên bản không đủ để chứng minh độ ổn định thống kê tuyệt đối. Tuy nhiên, mức tăng điểm rõ rệt từ 76.82 lên 82.05 (đặc biệt là bước nhảy từ 30 lên 100 điểm ở case A5) là minh chứng xác thực cho hiệu quả của việc thiết lập Evidence Gate và tinh chỉnh prompt ranh giới bằng chứng.
+- **Giới hạn của việc chạy một lần mỗi phiên bản:** Một lần chạy duy nhất cho mỗi phiên bản không đủ để chứng minh độ ổn định thống kê tuyệt đối. Tuy nhiên, mức tăng điểm rõ rệt từ 76.82 lên 95.36 (đặc biệt là bước nhảy từ 30 lên 96 điểm ở case A5) là minh chứng xác thực cho hiệu quả của việc thiết lập Evidence Gate và tinh chỉnh prompt ranh giới bằng chứng.

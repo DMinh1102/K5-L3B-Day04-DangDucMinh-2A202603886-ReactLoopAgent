@@ -3,6 +3,9 @@ import json
 import os
 import urllib.error
 import urllib.request
+import uuid
+
+SESSION_ID = str(uuid.uuid4())
 
 CONFIG = {
     'openai': ('OPENAI_API_KEY', 'https://api.openai.com/v1/chat/completions'),
@@ -13,7 +16,12 @@ CONFIG = {
 
 
 def post_json(url, headers, payload):
-    req = urllib.request.Request(url, data=json.dumps(payload).encode(), headers={'Content-Type': 'application/json', **headers})
+    default_headers = {
+        'Content-Type': 'application/json',
+        'User-Agent': 'StatusAgentLab/1.0',
+        'x-opencode-session': SESSION_ID,
+    }
+    req = urllib.request.Request(url, data=json.dumps(payload).encode(), headers={**default_headers, **headers})
     try:
         with urllib.request.urlopen(req, timeout=60) as response:
             return json.load(response)
@@ -37,6 +45,8 @@ class Provider:
             raise ValueError('Cần đặt MODEL là model có hỗ trợ tool calling.')
         self.name, self.model = name, model
         key_name, self.url = CONFIG[name]
+        if self.name == 'openai' and os.getenv('OPENAI_API_BASE'):
+            self.url = os.getenv('OPENAI_API_BASE')
         self.key = os.getenv(key_name)
         if not self.key:
             raise ValueError(f'Thiếu {key_name}; xem README.md.')
